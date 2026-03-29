@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>齐司礼 - 私密聊天</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- 背景图片容器 -->
+<div class="background-container" id="backgroundContainer"></div>
+
+<div class="container">
+  <!-- 设置遮罩层 -->
+  <div class="settings-overlay" id="settingsOverlay"></div>
+  
+  <!-- 用户信息编辑模态框 -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal-content">
+      <h3 class="modal-title" id="modalTitle">编辑用户信息</h3>
+      
+      <div class="avatar-preview" id="avatarPreview">
+        <!-- 头像预览 -->
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; margin-bottom:6px; color:var(--text); font-size:0.85rem;">昵称:</label>
+        <input type="text" class="nickname-input" id="modalNicknameInput" maxlength="12" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(92,92,92,0.3); font-size:0.85rem;">
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; margin-bottom:6px; color:var(--text); font-size:0.85rem;">更换头像:</label>
+        <input type="file" id="modalAvatarUpload" class="hidden-file-input" accept="image/*">
+        <button class="add-sticker-btn" id="uploadAvatarBtn" style="margin-bottom:0; padding:10px; font-size:0.85rem;">选择头像图片</button>
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-btn secondary" id="cancelEditBtn">取消</button>
+        <button class="modal-btn primary" id="saveUserInfoBtn">保存</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 聊天头部 -->
+  <div class="chat-header">
+    <!-- 左侧用户信息（对方）- 改为垂直布局，状态卡片移到头像下方 -->
+    <div class="user-info" id="otherUserInfo" style="flex-direction: column; width: auto; align-items: center;">
+      <!-- 头像区域 -->
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <div class="avatar" id="otherAvatar">
+          <!-- 白色圆形，无文字无默认图片 -->
+        </div>
+        <div class="nickname" id="otherNickname">对方</div>
+      </div>
+      
+      <!-- 状态卡片 - 移到头像下方 -->
+<div class="other-status-vertical" id="otherStatusCard" style="display: flex; flex-direction: column; align-items: center;">
+  <!-- 位置状态 -->
+  <div style="display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;">
+    <span style="font-size: 0.65rem; opacity: 0.8;">位置</span>
+    <span class="other-location" id="otherLocationText" style="font-size: 0.75rem; font-weight: 500;">在DR</span>
+  </div>
+  <!-- 分隔线 -->
+  <div style="width: 80%; height: 1px; margin: 4px 0;"></div>
+  <!-- 心情指数 -->
+  <div style="display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;">
+    <span style="font-size: 0.65rem; opacity: 0.8;">心情</span>
+    <div class="other-mood" style="display: flex; align-items: center; gap: 2px;">
+      <span id="otherMoodValue" style="font-size: 0.8rem; font-weight: 600;">85</span>
+      <span style="font-size: 0.6rem;">%</span>
+    </div>
+  </div>
+</div>
+      
+      <!-- 隐藏原有元素（通过内联样式覆盖） -->
+      <div class="status-indicator" id="otherStatusIndicator" style="display: none !important;"></div>
+      <div class="status-text" id="otherStatusText" style="display: none !important;">在DR</div>
+      <div class="mood-percentage" id="otherMoodPercentage" style="display: none !important;"></div>
+    </div>
+    
+    <!-- 中间标题 - 恋爱天数已移除 -->
+    <div class="chat-title-area">
+      <h1 id="appTitle">齐司礼</h1>
+      <div class="chat-subtitle" id="appSubtitle">DR传讯</div>
+    </div>
+    
+    <!-- 右侧用户信息（自己）和设置按钮，新增夜间模式按钮 -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="user-info" id="selfUserInfo">
+        <div class="avatar" id="selfAvatar">
+          <!-- 白色圆形，无文字无默认图片 -->
+        </div>
+        <div class="status-text" id="selfStatusText">在线</div>
+        <div class="nickname" id="selfNickname">我</div>
+      </div>
+      
+      <!-- 新增：夜间模式切换按钮 -->
+      <div class="theme-toggle" id="themeToggle">
+        <i class="material-icons">dark_mode</i>
+      </div>
+      
+      <div class="settings-toggle" id="settingsToggle">
+        <i class="material-icons">settings</i>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 聊天区域 -->
+  <section class="chat-section">
+    <div class="chat-container">
+      <div class="messages-area" id="messagesArea">
+        <!-- 对方正在输入指示器 -->
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <span style="font-size:0.75rem; margin-left:4px;">对方正在输入...</span>
+        </div>
+        
+        <!-- 初始消息将从本地存储加载 -->
+      </div>
+      
+      <div class="input-area">
+        <div class="input-area-buttons">
+          <input type="text" class="message-input" id="messageInput" placeholder="输入消息..." maxlength="200">
+          <div class="upload-image-button" id="uploadImageButton" title="发送图片">
+            <i class="material-icons">image</i>
+          </div>
+          <!-- 新增：表情包按钮 -->
+          <div class="upload-image-button" id="stickerPickerButton" title="表情包">
+            <i class="material-icons">insert_emoticon</i>
+          </div>
+          <input type="file" id="imageUpload" class="hidden-file-input" accept="image/*">
+          <button class="continue-button" id="continueButton">...</button>
+          <button class="send-button" id="sendButton">发送</button>
+        </div>
+        <!-- 新增：表情包选择器弹出面板 -->
+        <div class="sticker-picker-popover" id="user-sticker-picker">
+          <div class="combo-tabs-header">
+            <button class="combo-tab-btn active" data-tab="sticker">😊 表情库</button>
+            <button class="combo-tab-btn" data-tab="poke"> 拍一拍</button>
+          </div>
+          <div class="combo-content-area" id="combo-content-area"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 设置面板 - 全新布局 -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <h2>设置 <span class="love-days" id="loveDays"><i class="material-icons">favorite</i><span id="loveDaysCount">恋爱第 0 天</span></span></h2>
+    <button class="close-settings" id="closeSettings">
+      <i class="material-icons">close</i>
+    </button>
+  </div>
+  
+  <!-- 左侧竖排可滑动标签（已移除 云导入 和 导出记录） -->
+  <div class="settings-tabs-vertical" id="settingsTabsVertical">
+    <button class="tab-button active" data-tab="stickers">表情包库</button>
+    <button class="tab-button" data-tab="phrases">回复词条</button>
+    <button class="tab-button" data-tab="tarot">塔罗牌字卡</button>
+    <button class="tab-button" data-tab="ratio">发送设置</button>
+    <button class="tab-button" data-tab="appearance">外观设置</button>
+    <button class="tab-button" data-tab="background">背景设置</button>
+    <button class="tab-button" data-tab="communication">通话视频</button>
+    <button class="tab-button" data-tab="group">群聊功能</button>
+    <button class="tab-button" data-tab="music">音乐播放</button>
+    <!-- 新增拍一拍设置标签 -->
+    <button class="tab-button" data-tab="poke">👋 拍一拍设置</button>
+    <!-- 新增随机变化标签 -->
+    <button class="tab-button" data-tab="random">🔄 随机变化</button>
+    <button class="tab-button" data-tab="data">数据管理</button>
+  </div>
+  
+  <!-- 右侧可滑动内容区域，所有模块作为可折叠卡片 - 默认收起 -->
+  <div class="settings-content-vertical" id="settingsContentVertical">
+    
+    <!-- 表情包库模块 -->
+    <div class="settings-section-card" id="section-stickers" data-tab="stickers">
+      <div class="settings-section-header collapsed" onclick="toggleSection('stickers')">
+        <span>😊 表情包库管理</span>
+        <i class="material-icons" id="icon-stickers">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-stickers">
+        <p>添加图片后，对方可以随机发送这些表情包作为回复</p>
+        <div class="sticker-preview" id="stickerPreview"></div>
+        <input type="file" id="stickerUpload" class="hidden-file-input" accept="image/*" multiple>
+        <button class="add-sticker-btn" id="addStickerBtn">从相册添加表情包</button>
+        <p style="font-size:0.75rem; margin-top:16px; color:#888;">
+          提示：点击表情包右上角的×可以删除。已添加 <span id="stickerCount">0</span> 个表情包
+        </p>
+      </div>
+    </div>
+    
+    <!-- 回复词条模块 -->
+    <div class="settings-section-card" id="section-phrases" data-tab="phrases">
+      <div class="settings-section-header collapsed" onclick="toggleSection('phrases')">
+        <span>📝 回复词条管理</span>
+        <i class="material-icons" id="icon-phrases">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-phrases">
+        <p>对方将从这些词条中随机抽取作为回复。每行一个词条，自动识别分行。</p>
+        <p style="font-size:0.75rem; color:#888; margin-bottom: 16px;">提示：点击任意消息可以引用or删除or撤回</p>
+        <textarea class="phrases-textarea" id="phrasesTextarea" placeholder="请输入回复词条，每行一个&#10;例如：&#10;好的，明白了&#10;这很有趣&#10;继续聊吧&#10;让我想想"></textarea>
+        <div class="phrases-info">
+          <span>当前词条数: <span id="phraseCount">0</span></span>
+          <span>随机混合表情包和字卡发送</span>
+        </div>
+        <button class="save-phrases-btn" id="savePhrasesBtn">保存词条</button>
+      </div>
+    </div>
+    
+    <!-- 塔罗牌字卡模块 -->
+    <div class="settings-section-card" id="section-tarot" data-tab="tarot">
+      <div class="settings-section-header collapsed" onclick="toggleSection('tarot')">
+        <span>🔮 塔罗牌字卡抽取</span>
+        <i class="material-icons" id="icon-tarot">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-tarot">
+        <p>开启塔罗牌梦占模式，对方将只抽取塔罗牌字卡进行回复</p>
+        <div class="tarot-controls">
+          <div class="tarot-switch">
+            <div class="tarot-switch-label">
+              <i class="material-icons">auto_awesome</i>
+              <span>塔罗牌梦占模式</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="tarotModeToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          
+          <div class="tarot-item">
+            <div class="tarot-count-control">
+              <div class="tarot-count-label">每次抽取数量:</div>
+              <div id="tarotCountValue">1</div>
+            </div>
+            <div class="tarot-number-selector" id="tarotNumberSelector"></div>
+          </div>
+          
+          <div class="tarot-item">
+            <label class="communication-label">塔罗牌字卡库:</label>
+            <textarea class="tarot-textarea" id="tarotTextarea" placeholder="请输入塔罗牌字卡，每行一个&#10;例如：&#10;愚人 正位&#10;魔术师 逆位"></textarea>
+            <div class="tarot-info">
+              <span>当前塔罗牌字卡数: <span id="tarotPhraseCount">0</span></span>
+            </div>
+          </div>
+          
+          <button class="save-tarot-btn" id="saveTarotBtn">保存塔罗牌设置</button>
+          <div class="tarot-status" id="tarotStatus">塔罗牌模式已关闭</div>
+          <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button class="cloud-btn" id="loadDefaultTarotBtn" style="flex: 1;">加载默认78张</button>
+            <button class="cloud-btn" id="clearTarotBtn" style="flex: 1;">清空</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 发送设置模块 -->
+    <div class="settings-section-card" id="section-ratio" data-tab="ratio">
+      <div class="settings-section-header collapsed" onclick="toggleSection('ratio')">
+        <span>⚙️ 发送设置</span>
+        <i class="material-icons" id="icon-ratio">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-ratio">
+        <p>调整对方回复时表情包和字卡的发送比例</p>
+        <div class="ratio-controls">
+          <div class="ratio-item">
+            <div class="ratio-label">
+              <span>表情包发送比例</span>
+              <span class="ratio-value" id="stickerRatioValue">50%</span>
+            </div>
+            <input type="range" min="0" max="100" value="50" class="ratio-slider" id="stickerRatioSlider">
+          </div>
+          <div class="ratio-item">
+            <div class="ratio-label">
+              <span>字卡发送比例</span>
+              <span class="ratio-value" id="phraseRatioValue">50%</span>
+            </div>
+            <input type="range" min="0" max="100" value="50" class="ratio-slider" id="phraseRatioSlider">
+          </div>
+          <div class="max-count-control">
+            <div class="max-count-label">最大发送数量:</div>
+            <select class="max-count-select" id="maxMessageCount">
+              <option value="1">1条</option>
+              <option value="2">2条</option>
+              <option value="3" selected>3条</option>
+              <option value="4">4条</option>
+              <option value="5">5条</option>
+            </select>
+          </div>
+          <div class="auto-send-controls">
+            <div class="auto-send-label">主动发送频率:</div>
+            <select class="auto-send-select" id="autoSendFrequency">
+              <option value="0">不主动发送</option>
+              <option value="300000">5分钟</option>
+              <option value="600000" selected>10分钟</option>
+              <option value="1200000">20分钟</option>
+              <option value="1800000">30分钟</option>
+              <option value="3600000">1小时</option>
+            </select>
+          </div>
+          <!-- 新增：回复最短等待时间 -->
+          <div class="ratio-item">
+            <div class="ratio-label">
+              <span>回复最短等待时间</span>
+              <span class="ratio-value" id="minDelayValue">1.5秒</span>
+            </div>
+            <input type="range" min="0.1" max="10" step="0.1" value="1.5" class="ratio-slider" id="minDelaySlider">
+          </div>
+          <!-- 新增：回复最长等待时间 -->
+          <div class="ratio-item">
+            <div class="ratio-label">
+              <span>回复最长等待时间</span>
+              <span class="ratio-value" id="maxDelayValue">3.5秒</span>
+            </div>
+            <input type="range" min="0.1" max="10" step="0.1" value="3.5" class="ratio-slider" id="maxDelaySlider">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 外观设置模块（已移除心情变化频率） -->
+    <div class="settings-section-card" id="section-appearance" data-tab="appearance">
+      <div class="settings-section-header collapsed" onclick="toggleSection('appearance')">
+        <span>🎨 外观设置</span>
+        <i class="material-icons" id="icon-appearance">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-appearance">
+        <div class="appearance-controls">
+          <div class="appearance-item">
+            <label class="appearance-label">应用标题:</label>
+            <input type="text" class="appearance-input" id="appTitleInput" value="齐司礼">
+          </div>
+          <div class="appearance-item">
+            <label class="appearance-label">应用副标题:</label>
+            <input type="text" class="appearance-input" id="appSubtitleInput" value="DR传讯">
+          </div>
+          <div class="appearance-item">
+            <label class="appearance-label">恋爱起始日期:</label>
+            <div class="date-inputs">
+              <input type="number" class="date-input" id="loveYear" placeholder="年" min="2000" max="2100" value="2024">
+              <input type="number" class="date-input" id="loveMonth" placeholder="月" min="1" max="12" value="1">
+              <input type="number" class="date-input" id="loveDay" placeholder="日" min="1" max="31" value="1">
+            </div>
+          </div>
+        </div>
+        <button class="save-phrases-btn" id="saveAppearanceBtn">保存外观设置</button>
+      </div>
+    </div>
+    
+    <!-- 背景设置模块 -->
+    <div class="settings-section-card" id="section-background" data-tab="background">
+      <div class="settings-section-header collapsed" onclick="toggleSection('background')">
+        <span>🖼️ 背景设置</span>
+        <i class="material-icons" id="icon-background">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-background">
+        <div class="background-controls">
+          <div class="background-item">
+            <label class="communication-label">当前背景预览:</label>
+            <div class="background-preview" id="backgroundPreview">
+              <div class="empty"><i class="material-icons">wallpaper</i><span>默认背景</span></div>
+            </div>
+          </div>
+          <div class="background-item">
+            <label class="communication-label">上传背景图片:</label>
+            <div class="background-options">
+              <div class="background-option color" id="uploadBackgroundOption">
+                <span>点击上传背景图片</span>
+              </div>
+            </div>
+            <input type="file" id="backgroundUpload" class="hidden-file-input" accept="image/*">
+          </div>
+          <div class="background-item">
+            <label class="communication-label">背景透明度:</label>
+            <input type="range" min="0" max="100" value="100" class="ratio-slider" id="backgroundOpacitySlider">
+            <div style="display:flex; justify-content:space-between; margin-top:8px;">
+              <span style="font-size:0.8rem;">透明</span>
+              <span style="font-size:0.8rem;" id="backgroundOpacityValue">100%</span>
+              <span style="font-size:0.8rem;">不透明</span>
+            </div>
+          </div>
+          <button class="remove-background-btn" id="removeBackgroundBtn">恢复默认背景</button>
+        </div>
+        <button class="save-background-btn" id="saveBackgroundBtn">保存背景设置</button>
+      </div>
+    </div>
+    
+    <!-- 通信设置模块 -->
+    <div class="settings-section-card" id="section-communication" data-tab="communication">
+      <div class="settings-section-header collapsed" onclick="toggleSection('communication')">
+        <span>📞 通话与视频</span>
+        <i class="material-icons" id="icon-communication">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-communication">
+        <div class="communication-controls">
+          <div class="communication-item">
+            <div class="communication-label">主动呼叫对方</div>
+            <div class="communication-buttons">
+              <button class="call-button" id="startCallButton"><i class="material-icons">call</i>语音通话</button>
+              <button class="video-button" id="startVideoButton"><i class="material-icons">videocam</i>视频通话</button>
+            </div>
+          </div>
+          <div class="communication-item">
+            <div class="communication-label">通话设置</div>
+            <div style="margin-top: 10px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; margin-bottom:8px;">
+                <input type="checkbox" id="autoAcceptCalls" checked><span>自动接听对方来电</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+                <input type="checkbox" id="autoAcceptVideos" checked><span>自动接听对方视频邀请</span>
+              </label>
+            </div>
+          </div>
+          <div class="active-call-controls">
+            <div class="communication-label">对方主动呼叫设置</div>
+            <div class="active-call-item">
+              <div class="ratio-label">
+                <span>总体呼叫频率</span>
+                <span class="active-call-value" id="overallFrequencyValue">30%</span>
+              </div>
+              <input type="range" min="0" max="100" value="30" class="active-call-slider" id="overallFrequencySlider">
+            </div>
+            <div class="active-call-item">
+              <div class="ratio-label">
+                <span>呼叫类型偏好</span>
+                <span class="active-call-value" id="callPreferenceValue">电话 50% / 视频 50%</span>
+              </div>
+              <input type="range" min="0" max="100" value="50" class="active-call-slider" id="callPreferenceSlider">
+            </div>
+            <div class="active-call-item">
+              <div class="ratio-label"><span>预设模式</span></div>
+              <div class="preset-buttons">
+                <button class="preset-btn" data-preset="quiet">安静模式</button>
+                <button class="preset-btn" data-preset="daily">日常模式</button>
+                <button class="preset-btn" data-preset="intimate">亲密模式</button>
+                <button class="preset-btn active" data-preset="custom">自定义</button>
+              </div>
+            </div>
+            <div class="active-call-preview" id="activeCallPreview">
+              <p><strong>当前设置预览：</strong></p>
+              <p>• 总体频率：<span id="previewFrequency">中等 (30%)</span></p>
+              <p>• 呼叫类型：<span id="previewType">电话 50% / 视频 50%</span></p>
+              <p>• 预计每天：<span id="previewDaily">2-4次呼叫</span></p>
+            </div>
+          </div>
+          <div class="communication-stats">
+            <p style="margin:0 0 8px 0; font-weight:500;">通话统计</p>
+            <p>今日通话: <span id="todayCalls">0</span> 次</p>
+            <p>总通话时长: <span id="totalCallTime">0</span> 分钟</p>
+            <p>今日视频: <span id="todayVideos">0</span> 次</p>
+            <p>总视频时长: <span id="totalVideoTime">0</span> 分钟</p>
+            <p>对方今日主动呼叫: <span id="todayIncomingCalls">0</span> 次</p>
+          </div>
+        </div>
+        <button class="communication-btn" id="saveCommunicationBtn">保存通话设置</button>
+      </div>
+    </div>
+    
+    <!-- 群聊功能模块 (带编辑弹窗) -->
+    <div class="settings-section-card" id="section-group" data-tab="group">
+      <div class="settings-section-header collapsed" onclick="toggleSection('group')">
+        <span>👥 群聊功能</span>
+        <i class="material-icons" id="icon-group">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-group">
+        <div class="communication-controls">
+          <!-- 群聊开关 -->
+          <div class="group-switch-item">
+            <div class="group-switch-label">
+              <i class="material-icons">group</i>
+              <span>群聊模式</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="groupModeToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p style="font-size:0.8rem; margin-bottom:15px;">开启后，收到的消息将随机显示为群成员发送</p>
+          
+          <!-- 显示选项开关 -->
+          <div style="margin:15px 0;">
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <input type="checkbox" id="groupShowAvatar" checked> <span>显示成员头像</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="groupShowName" checked> <span>显示成员名称</span>
+            </label>
+          </div>
+          
+          <!-- 成员列表 -->
+          <div style="margin:20px 0 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span class="communication-label">群成员列表</span>
+              <button class="group-member-add-btn" id="addGroupMemberBtn" style="width:auto; padding:6px 15px;">+ 添加</button>
+            </div>
+            <div class="group-member-list" id="groupMemberList"></div>
+          </div>
+          
+          <!-- 成员编辑模态框（内联于群聊卡片内，隐藏） -->
+          <div id="groupMemberEditModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-panel); backdrop-filter: blur(12px); border-radius: 18px; padding: 20px; width: 300px; max-width: 90%; z-index: 3000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(92,92,92,0.2);">
+            <h3 style="margin:0 0 15px; color:var(--accent); font-weight:400; text-align:center;" id="groupMemberEditTitle">添加成员</h3>
+            <div style="text-align:center; margin-bottom:15px;">
+              <div class="avatar-preview" id="groupMemberAvatarPreview" style="width:80px; height:80px; cursor:pointer; border:2px dashed var(--accent-gray); background:rgba(255,255,255,0.2);">
+                <!-- 头像预览 -->
+              </div>
+              <p style="font-size:0.7rem; color:var(--text-secondary); margin-top:5px;">点击头像上传图片</p>
+              <input type="file" id="groupMemberAvatarUpload" class="hidden-file-input" accept="image/*">
+            </div>
+            <div style="margin-bottom:15px;">
+              <label style="display:block; font-size:0.8rem; color:var(--text); margin-bottom:5px;">昵称</label>
+              <input type="text" id="groupMemberNameInput" class="modal-input" maxlength="12" placeholder="输入昵称" style="width:100%; padding:8px; border:1px solid rgba(92,92,92,0.3); border-radius:6px; background:rgba(255,255,255,0.5); color:var(--text);">
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="modal-btn secondary" id="cancelGroupMemberEdit" style="flex:1;">取消</button>
+              <button class="modal-btn primary" id="saveGroupMemberEdit" style="flex:1;">保存</button>
+            </div>
+          </div>
+        </div>
+        <button class="group-save-btn" id="saveGroupSettingsBtn">保存群聊设置</button>
+      </div>
+    </div>
+    
+    <!-- 音乐播放模块 - 已添加URL输入功能 -->
+    <div class="settings-section-card" id="section-music" data-tab="music">
+      <div class="settings-section-header collapsed" onclick="toggleSection('music')">
+        <span>🎵 音乐播放器</span>
+        <i class="material-icons" id="icon-music">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-music">
+        <div class="music-library">
+          <p>上传音频文件或通过URL添加歌曲，对方可以随机播放或主动发起听歌</p>
+          <div class="music-controls">
+            <div class="music-item">
+              <label class="communication-label">上传音乐文件:</label>
+              <div class="music-upload-area" id="musicUploadArea">
+                <i class="material-icons" style="font-size: 2.5rem;">music_note</i>
+                <span>点击或拖拽上传音频</span>
+              </div>
+              <input type="file" id="musicUpload" class="hidden-file-input" accept="audio/*">
+            </div>
+
+            <!-- 新增：通过URL添加歌曲区域 -->
+<div class="music-item" style="margin-top: 20px;">
+    <label class="communication-label">通过URL添加歌曲:</label>
+    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <input type="text" id="musicUrlInput" class="appearance-input" placeholder="输入歌曲URL（支持mp3等音频格式）" style="flex: 2;">
+        <input type="text" id="musicUrlNameInput" class="appearance-input" placeholder="歌曲名称" style="flex: 1;">
+    </div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="add-sticker-btn" id="addMusicUrlBtn" style="margin-bottom: 0; flex: 1;">
+            <i class="material-icons" style="font-size: 1rem;">link</i> 添加URL歌曲
+        </button>
+    </div>
+    <p style="font-size:0.75rem; color:#888; margin-top: 5px;">提示：URL必须是直接可访问的音频文件链接（如.mp3, .wav等）。</p>
+</div>
+
+            <div class="music-item">
+              <label class="communication-label">音乐库管理:</label>
+              <div class="music-list" id="musicList"></div>
+            </div>
+            <div class="music-item">
+              <label class="communication-label">播放设置:</label>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" id="autoPlayMusic" checked> <span>对方主动播放音乐</span>
+                </label>
+                <div class="active-call-item">
+                  <div class="ratio-label">
+                    <span>音乐播放频率</span>
+                    <span class="active-call-value" id="musicFrequencyValue">30%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value="30" class="active-call-slider" id="musicFrequencySlider">
+                </div>
+                <div class="ratio-label"><span>播放模式</span></div>
+                <div style="display: flex; gap: 10px;">
+                  <label><input type="radio" name="musicPlayMode" value="random" checked> 随机</label>
+                  <label><input type="radio" name="musicPlayMode" value="single"> 单曲</label>
+                  <label><input type="radio" name="musicPlayMode" value="list"> 列表</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="save-background-btn" id="saveMusicSettingsBtn">保存音乐设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 新增：拍一拍设置模块 ===== -->
+    <div class="settings-section-card" id="section-poke" data-tab="poke">
+      <div class="settings-section-header collapsed" onclick="toggleSection('poke')">
+        <span>👋 拍一拍设置</span>
+        <i class="material-icons" id="icon-poke">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-poke">
+        <p>自定义拍一拍文案，对方将从中随机选择发送。每行一个。</p>
+        <div class="poke-controls" style="background: rgba(255,255,255,0.5); border-radius:10px; padding:16px;">
+          <div class="poke-item" style="margin-bottom:15px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span>允许对方主动拍一拍</span>
+              <label class="switch">
+                <input type="checkbox" id="pokeEnableToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="poke-item" style="margin-bottom:15px;">
+            <div class="ratio-label">
+              <span>主动拍一拍频率</span>
+              <span class="active-call-value" id="pokeFrequencyValue">20%</span>
+            </div>
+            <input type="range" min="0" max="100" value="20" class="active-call-slider" id="pokeFrequencySlider">
+          </div>
+          <div class="poke-item">
+            <label class="communication-label">拍一拍文案库：</label>
+            <textarea class="tarot-textarea" id="pokePhrasesTextarea" placeholder="每行一个拍一拍后缀&#10;例如：&#10;拍了拍你&#10;拍了拍我的肩膀&#10;戳了戳我"></textarea>
+            <div class="tarot-info">
+              <span>当前文案数: <span id="pokePhraseCount">0</span></span>
+            </div>
+          </div>
+        </div>
+        <button class="save-phrases-btn" id="savePokeSettingsBtn" style="margin-top:10px;">保存拍一拍设置</button>
+      </div>
+    </div>
+    <!-- ===== 拍一拍设置模块结束 ===== -->
+    
+    <!-- ===== 新增：随机变化设置模块 ===== -->
+    <div class="settings-section-card" id="section-random" data-tab="random">
+      <div class="settings-section-header collapsed" onclick="toggleSection('random')">
+        <span>🔄 随机变化设置</span>
+        <i class="material-icons" id="icon-random">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-random">
+        <p>设置对方位置和心情随机变化的时间范围</p>
+        <div class="random-controls" style="background: rgba(255,255,255,0.5); border-radius:10px; padding:16px;">
+          
+          <!-- 最短时间设置 -->
+          <div class="random-item" style="margin-bottom:20px;">
+            <div class="ratio-label">
+              <span>最短变化间隔</span>
+              <span class="random-value" id="minRandomValue">2秒</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+              <input type="range" min="1" max="60" value="2" class="ratio-slider" id="minRandomSlider" style="flex: 2;">
+              <input type="number" min="1" max="60" value="2" class="date-input" id="minRandomInput" style="width: 60px;">
+              <select class="max-count-select" id="minRandomUnit" style="width: 70px;">
+                <option value="1">秒</option>
+                <option value="60">分钟</option>
+                <option value="3600">小时</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- 最长时间设置 -->
+          <div class="random-item" style="margin-bottom:20px;">
+            <div class="ratio-label">
+              <span>最长变化间隔</span>
+              <span class="random-value" id="maxRandomValue">4小时</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+              <input type="range" min="1" max="24" value="4" class="ratio-slider" id="maxRandomSlider" style="flex: 2;">
+              <input type="number" min="1" max="24" value="4" class="date-input" id="maxRandomInput" style="width: 60px;">
+              <select class="max-count-select" id="maxRandomUnit" style="width: 70px;">
+                <option value="1">秒</option>
+                <option value="60">分钟</option>
+                <option value="3600" selected>小时</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- 预览区域 -->
+          <div class="active-call-preview" style="margin-top: 20px;">
+            <p><strong>当前设置预览：</strong></p>
+            <p>• 对方位置和心情将在 <span id="randomPreviewMin">2秒</span> 到 <span id="randomPreviewMax">4小时</span> 之间随机变化</p>
+            <p>• 平均每天变化约 <span id="randomPreviewDaily">6-12</span> 次</p>
+          </div>
+          
+        </div>
+        <button class="save-phrases-btn" id="saveRandomSettingsBtn" style="margin-top:10px;">保存随机变化设置</button>
+      </div>
+    </div>
+    <!-- ===== 随机变化设置模块结束 ===== -->
+    
+    <!-- ===== 数据管理模块（已删除消息推送，已删除标题图标） ===== -->
+    <div class="settings-section-card" id="section-data" data-tab="data">
+      <div class="settings-section-header collapsed" onclick="toggleSection('data')">
+        <span>💾 数据管理</span>
+        <i class="material-icons" id="icon-data">expand_more</i>
+      </div>
+      <div class="settings-section-content collapsed" id="content-data">
+        <div class="export-library">
+          <h3 style="color:var(--accent); font-size:1.1rem; margin-bottom:15px;">数据管理</h3>
+          
+          <!-- 聊天记录导入导出 -->
+          <div style="margin-bottom:20px;">
+            <h4 style="font-size:0.9rem; margin-bottom:10px;">聊天记录</h4>
+            <div style="display:flex; gap:10px;">
+              <button class="import-export-btn" id="exportChatBtn" style="flex:1;">
+                <i class="material-icons" style="font-size:1rem;">download</i> 导出记录
+              </button>
+              <button class="import-export-btn" id="importChatBtn" style="flex:1;">
+                <i class="material-icons" style="font-size:1rem;">upload</i> 导入记录
+              </button>
+            </div>
+          </div>
+          
+          <!-- 全部备份 -->
+          <div style="margin-bottom:20px;">
+            <h4 style="font-size:0.9rem; margin-bottom:10px;">全部备份</h4>
+            <div style="display:flex; gap:10px;">
+              <button class="import-export-btn" id="exportAllSettingsBtn" style="flex:1;">
+                <i class="material-icons" style="font-size:1rem;">download</i> 导出全部
+              </button>
+              <button class="import-export-btn" id="importAllSettingsBtn" style="flex:1;">
+                <i class="material-icons" style="font-size:1rem;">upload</i> 导入恢复
+              </button>
+            </div>
+          </div>
+          
+          <!-- 数据清理 -->
+          <div style="margin-bottom:20px;">
+            <h4 style="font-size:0.9rem; margin-bottom:10px;">数据清理</h4>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button class="remove-background-btn" id="clearChatBtn" style="margin:0; background:var(--accent-gray);">
+                <i class="material-icons">delete</i> 清空当前会话
+              </button>
+              <button class="remove-background-btn" id="resetAllDataBtn" style="margin:0; background:#d32f2f;">
+                <i class="material-icons">delete_forever</i> 重置所有数据
+              </button>
+            </div>
+          </div>
+          
+          <!-- 隐藏的文件输入（用于导入） -->
+          <input type="file" id="dataImportInput" class="hidden-file-input" accept=".json">
+        </div>
+      </div>
+    </div>
+    <!-- ===== 数据管理模块结束 ===== -->
+    
+  </div> <!-- end settings-content-vertical -->
+</div> <!-- end settings-panel -->
+
+<!-- 通话/视频小窗口会动态创建 -->
+
+<script src="script.js"></script>
+</body>
+</html>
